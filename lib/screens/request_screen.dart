@@ -356,7 +356,7 @@ final senderName = await getCurrentUserName();
     SizedBox(height: 10),
 
     SelectableText(
-      "Amount: ₦300\n\n"
+      "Amount: ₦100\n\n"
       "Bank: Kuda Microfinance Bank\n"
       "Account Number: 2082918233",
       style: TextStyle(fontSize: 16),
@@ -383,7 +383,7 @@ final senderName = await getCurrentUserName();
     .doc(requestId)
     .set({
 
-  'serviceFee': 300,
+  'serviceFee': 100,
 
   'serviceFeePaid': true,
 
@@ -400,7 +400,7 @@ final senderName = await getCurrentUserName();
                 .doc(requestId)
                 .collection('history')
                 .add({
-              'action': 'User paid ₦300 platform service fee',
+              'action': 'User paid ₦100 platform service fee',
               'timestamp': FieldValue.serverTimestamp(),
             });
 
@@ -410,7 +410,7 @@ final senderName = await getCurrentUserName();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
   content: Text(
-    "Thank you! Your ₦300 platform service fee has been recorded.",
+    "Thank you! Your ₦100 platform service fee has been recorded.",
   ),
 )
             );
@@ -491,17 +491,16 @@ final senderName = await getCurrentUserName();
       bool online = false;
       Timestamp? lastSeen;
 
-      if (snapshot.hasData && snapshot.data!.exists) {
-        final data =
-            snapshot.data!.data() as Map<String, dynamic>;
+      String profileImage = "";
 
-        online = data['isOnline'] ?? false;
-        lastSeen = data['lastSeen'];
-      }
-      final userData =
-    snapshot.data!.data() as Map<String, dynamic>;
+if (snapshot.hasData && snapshot.data!.exists) {
+  final data =
+      snapshot.data!.data() as Map<String, dynamic>;
 
-final profileImage = userData['profileImage'] ?? '';
+  online = data['isOnline'] ?? false;
+  lastSeen = data['lastSeen'];
+  profileImage = data['profileImage'] ?? "";
+}
 
       return ListTile(
         leading: CircleAvatar(

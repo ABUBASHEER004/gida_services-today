@@ -108,6 +108,7 @@ class _ProviderRegisterState extends State<ProviderRegister> {
     "Petrol Black Marketer",
     "Women Beauty Products Seller",
     "Painter",
+    "Other Services",
   ];
 
   String selectedService = "Waste Pickup";

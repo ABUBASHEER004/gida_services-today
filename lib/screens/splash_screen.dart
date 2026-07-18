@@ -18,7 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (context) => const WelcomeScreen(),
+          builder: (_) => const WelcomeScreen(),
         ),
       );
     });
@@ -31,27 +31,43 @@ class _SplashScreenState extends State<SplashScreen> {
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(
-              Icons.home_repair_service,
-              size: 100,
-              color: Colors.white,
-            ),
-            SizedBox(height: 20),
-            Text(
+          children: [
+           // App Logo
+Image.asset(
+  'assets/logo.png',
+  width: 250,
+  height: 250,
+  fit: BoxFit.contain,
+),
+
+            const SizedBox(height: 25),
+
+            const Text(
               "GIDA SERVICES",
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 28,
+                fontSize: 30,
                 fontWeight: FontWeight.bold,
+                letterSpacing: 1.5,
               ),
             ),
-            SizedBox(height: 10),
-            Text(
+
+            const SizedBox(height: 10),
+
+            const Text(
               "Connecting Homes to Trusted Services",
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.white70,
+                fontSize: 16,
               ),
+            ),
+
+            const SizedBox(height: 40),
+
+            const CircularProgressIndicator(
+              color: Colors.white,
+              strokeWidth: 3,
             ),
           ],
         ),
@@ -59,4 +75,3 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
-

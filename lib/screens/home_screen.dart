@@ -303,6 +303,10 @@ class HomeScreen extends StatelessWidget {
       "name":"School",
     "icon": Icons.school,
     },
+     {
+      "name":"Other Services",
+    "icon": Icons.manage_accounts,
+    },
   ];
 
   @override

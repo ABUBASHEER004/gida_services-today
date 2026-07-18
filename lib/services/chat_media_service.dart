@@ -200,7 +200,13 @@ static Future<Map<String, String>?> uploadVideo({
         .child(chatId)
         .child(fileName);
 
-    await videoRef.putFile(video);
+    await videoRef.putFile(
+  video,
+  SettableMetadata(
+    contentType: "video/mp4",
+    cacheControl: "public,max-age=3600",
+  ),
+);
 
     final videoUrl =
         await videoRef.getDownloadURL();

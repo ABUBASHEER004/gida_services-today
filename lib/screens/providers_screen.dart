@@ -134,6 +134,7 @@ class ProvidersScreen extends StatelessWidget {
     _buildCategory("Petrol Black Marketer",Icons.man),
     _buildCategory("Women Beauty Products Seller",Icons.woman),
     _buildCategory("School ",Icons.school_outlined),
+    _buildCategory("Other Services", Icons.manage_accounts),
         ],
       ),
     );

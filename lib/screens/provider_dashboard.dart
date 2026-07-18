@@ -28,13 +28,12 @@ class _ProviderDashboardState extends State<ProviderDashboard>
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
- 
   bool isOnline = false;
   String address = "Loading location...";
 
   Future<void> saveFcmToken() async {
     try {
-     final token = await NotificationService.getToken();
+      final token = await NotificationService.getToken();
       debugPrint("FCM TOKEN: $token");
 
       if (token != null) {
@@ -48,8 +47,6 @@ class _ProviderDashboardState extends State<ProviderDashboard>
       debugPrint("FCM Token Error: $e");
     }
   }
-
- 
 
   final nameController = TextEditingController();
   final phoneController = TextEditingController();
@@ -76,9 +73,7 @@ class _ProviderDashboardState extends State<ProviderDashboard>
 
     loadProviderData();
     saveFcmToken();
-
-   
-}
+  }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -95,8 +90,6 @@ class _ProviderDashboardState extends State<ProviderDashboard>
 
     NotificationService.dispose();
 
-    
-
     nameController.dispose();
     phoneController.dispose();
     serviceController.dispose();
@@ -105,53 +98,48 @@ class _ProviderDashboardState extends State<ProviderDashboard>
   }
 
   Future<void> openChat(String userId) async {
-  if (userId.isEmpty || widget.providerId.isEmpty) return;
+    if (userId.isEmpty || widget.providerId.isEmpty) return;
 
-  String customerName = "Customer";
+    String customerName = "Customer";
 
-  final userDoc = await FirebaseFirestore.instance
-      .collection('users')
-      .doc(userId)
-      .get();
+    final userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
-  if (userDoc.exists) {
-    customerName = userDoc.data()?['name'] ?? "Customer";
-  }
+    if (userDoc.exists) {
+      customerName = userDoc.data()?['name'] ?? "Customer";
+    }
 
-  final chatId = userId.compareTo(widget.providerId) < 0
-      ? "${userId}_${widget.providerId}"
-      : "${widget.providerId}_$userId";
+    final chatId = userId.compareTo(widget.providerId) < 0
+        ? "${userId}_${widget.providerId}"
+        : "${widget.providerId}_$userId";
 
-  await FirebaseFirestore.instance
-      .collection('chats')
-      .doc(chatId)
-      .set({
-    'participants': [
-      userId,
-      widget.providerId,
-    ],
-    'participantNames': {
-      userId: customerName,
-      widget.providerId: widget.providerName,
-    },
-    'updatedAt': FieldValue.serverTimestamp(),
-  }, SetOptions(merge: true));
+    await FirebaseFirestore.instance.collection('chats').doc(chatId).set({
+      'participants': [
+        userId,
+        widget.providerId,
+      ],
+      'participantNames': {
+        userId: customerName,
+        widget.providerId: widget.providerName,
+      },
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => ChatScreen(
-        chatId: chatId,
-        senderId: widget.providerId,
-        receiverId: userId,
-        chatName: customerName,
-        senderName: widget.providerName,
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          chatId: chatId,
+          senderId: widget.providerId,
+          receiverId: userId,
+          chatName: customerName,
+          senderName: widget.providerName,
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget earningsCard() {
     return StreamBuilder<QuerySnapshot>(
@@ -324,7 +312,7 @@ class _ProviderDashboardState extends State<ProviderDashboard>
   // COMPLETE JOB
   // =========================
   Future<void> markAsDone(String id, double amount) async {
-    const commissionRate = 0.15;
+    const commissionRate = 0.05;
 
     final commission = amount * commissionRate;
     final providerEarning = amount - commission;
@@ -592,13 +580,11 @@ class _ProviderDashboardState extends State<ProviderDashboard>
                             Wrap(
                               spacing: 8,
                               children: [
-
                                 ElevatedButton.icon(
-  onPressed: () => openChat(userId),
-  icon: const Icon(Icons.chat),
-  label: const Text("Chat"),
-),
-
+                                  onPressed: () => openChat(userId),
+                                  icon: const Icon(Icons.chat),
+                                  label: const Text("Chat"),
+                                ),
                                 if (status == 'pending')
                                   ElevatedButton(
                                     onPressed: () => acceptRequest(id),
