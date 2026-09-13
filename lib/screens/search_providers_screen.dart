@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import 'request_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/profile_avatar.dart';
 
 class SearchProvidersScreen extends StatefulWidget {
   const SearchProvidersScreen({super.key});
@@ -143,15 +144,12 @@ class _SearchProvidersScreenState
     vertical: 6,
   ),
   child: ListTile(
-    leading: CircleAvatar(
-      backgroundColor:
-          (data['isOnline'] ?? false)
-              ? Colors.green
-              : Colors.grey,
-      child: const Icon(
-        Icons.person,
-        color: Colors.white,
-      ),
+    leading: ProfileAvatar(
+      imageUrl: (data['profileImage'] ?? data['photoUrl'] ?? '').toString(),
+      name: (data['name'] ?? 'Provider').toString(),
+      radius: 28,
+      showOnline: true,
+      isOnline: data['isOnline'] == true,
     ),
 
     title: Text(
@@ -239,9 +237,9 @@ class _SearchProvidersScreenState
         context,
         MaterialPageRoute(
           builder: (_) => RequestScreen(
-            providerPhoto: data['photoUrl'] ?? '',
+            providerPhoto: (data['profileImage'] ?? data['photoUrl'] ?? '').toString(),
             userId: currentUser.uid,
-            providerId: data['uid'] ?? '',
+            providerId: (data['uid'] ?? providers[index].id).toString(),
             providerName: data['name'] ?? '',
             category: data['service'] ?? '',
           ),

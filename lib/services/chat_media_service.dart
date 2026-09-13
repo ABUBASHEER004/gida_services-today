@@ -1,90 +1,92 @@
-import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
-
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ChatMediaService {
+  ChatMediaService._();
+
   static final ImagePicker _picker = ImagePicker();
 
   // =====================================================
-  // IMAGE SECTION
+  // IMAGE PICKER (GALLERY)
   // =====================================================
 
-  static Future<File?> pickFromGallery() async {
+  static Future<XFile?> pickFromGallery() async {
     try {
-      final XFile? image = await _picker.pickImage(
+      return await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 100,
       );
-
-      if (image == null) return null;
-
-      return File(image.path);
     } catch (e) {
       debugPrint("Gallery Error: $e");
       return null;
     }
   }
 
-  static Future<File?> pickFromCamera() async {
+  // =====================================================
+  // IMAGE PICKER (CAMERA)
+  // =====================================================
+
+  static Future<XFile?> pickFromCamera() async {
     try {
-      final XFile? image = await _picker.pickImage(
+      return await _picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 100,
       );
-
-      if (image == null) return null;
-
-      return File(image.path);
     } catch (e) {
       debugPrint("Camera Error: $e");
       return null;
     }
   }
-
-  static Future<File?> compressImage(File image) async {
-    try {
-      final tempDir = await getTemporaryDirectory();
-
-      final targetPath =
-          "${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg";
-
-      final XFile? compressed =
-          await FlutterImageCompress.compressAndGetFile(
-        image.absolute.path,
-        targetPath,
-        quality: 70,
-        minWidth: 1080,
-        minHeight: 1080,
-      );
-
-      if (compressed == null) {
-        return image;
-      }
-
-      return File(compressed.path);
-    } catch (e) {
-      debugPrint("Compression Error: $e");
-      return image;
-    }
-  }
+   // =====================================================
+  // IMAGE UPLOAD
+  // =====================================================
 
   static Future<String?> uploadImage({
     required String chatId,
-    required File image,
+    required XFile image,
   }) async {
     try {
-      final compressed = await compressImage(image);
+      // Read bytes
+      final Uint8List bytes = await image.readAsBytes();
 
-      if (compressed == null) return null;
+      // Detect extension
+      final extension =
+          image.name.split('.').last.toLowerCase();
 
+      // Detect MIME type
+      String contentType;
+
+      switch (extension) {
+        case 'png':
+          contentType = 'image/png';
+          break;
+
+        case 'gif':
+          contentType = 'image/gif';
+          break;
+
+        case 'bmp':
+          contentType = 'image/bmp';
+          break;
+
+        case 'webp':
+          contentType = 'image/webp';
+          break;
+
+        case 'jpeg':
+        case 'jpg':
+          contentType = 'image/jpeg';
+          break;
+
+        default:
+          contentType = 'application/octet-stream';
+      }
+
+      // Keep original extension
       final fileName =
-          "${DateTime.now().millisecondsSinceEpoch}.jpg";
+          "${DateTime.now().millisecondsSinceEpoch}.$extension";
 
       final ref = FirebaseStorage.instance
           .ref()
@@ -92,202 +94,330 @@ class ChatMediaService {
           .child(chatId)
           .child(fileName);
 
-      await ref.putFile(compressed);
+      await ref.putData(
+        bytes,
+        SettableMetadata(
+          contentType: contentType,
+          cacheControl: "public,max-age=3600",
+        ),
+      );
 
-      return await ref.getDownloadURL();
-    } catch (e) {
+      final url = await ref.getDownloadURL();
+
+      debugPrint("IMAGE UPLOADED");
+      debugPrint(url);
+
+      return url;
+    } catch (e, stack) {
       debugPrint("Upload Image Error: $e");
+      debugPrintStack(stackTrace: stack);
       return null;
     }
   }
+
+  // =====================================================
+  // GALLERY → UPLOAD
+  // =====================================================
 
   static Future<String?> pickGalleryAndUpload(
     String chatId,
   ) async {
     final image = await pickFromGallery();
 
-    if (image == null) return null;
+    if (image == null) {
+      return null;
+    }
 
-    return uploadImage(
+    return await uploadImage(
       chatId: chatId,
       image: image,
     );
   }
+
+  // =====================================================
+  // CAMERA → UPLOAD
+  // =====================================================
 
   static Future<String?> pickCameraAndUpload(
     String chatId,
   ) async {
     final image = await pickFromCamera();
 
-    if (image == null) return null;
+    if (image == null) {
+      return null;
+    }
 
-    return uploadImage(
+    return await uploadImage(
       chatId: chatId,
       image: image,
     );
   }
-  // ==========================
-// Pick Video From Gallery
-// ==========================
-static Future<File?> pickVideoFromGallery() async {
-  try {
-    final XFile? video = await _picker.pickVideo(
-      source: ImageSource.gallery,
-    );
-
-    if (video == null) return null;
-
-    return File(video.path);
-  } catch (e) {
-    debugPrint("Gallery Video Error: $e");
-    return null;
-  }
-}
-// ==========================
-// Record Video
-// ==========================
-static Future<File?> recordVideo() async {
-  try {
-    final XFile? video = await _picker.pickVideo(
-      source: ImageSource.camera,
-      maxDuration: const Duration(minutes: 2),
-    );
-
-    if (video == null) return null;
-
-    return File(video.path);
-  } catch (e) {
-    debugPrint("Camera Video Error: $e");
-    return null;
-  }
-}
-// ==========================
-// Generate Video Thumbnail
-// ==========================
-static Future<File?> generateThumbnail(File video) async {
-  try {
-    final tempDir = await getTemporaryDirectory();
-
-    final thumbPath = await VideoThumbnail.thumbnailFile(
-      video: video.path,
-      thumbnailPath: tempDir.path,
-      imageFormat: ImageFormat.JPEG,
-      quality: 70,
-    );
-
-    if (thumbPath == null) return null;
-
-    return File(thumbPath);
-  } catch (e) {
-    debugPrint("Thumbnail Error: $e");
-    return null;
-  }
-}
-// ==========================
-// Upload Video
-// ==========================
-static Future<Map<String, String>?> uploadVideo({
-  required String chatId,
-  required File video,
-}) async {
-  try {
-    final fileName =
-        "${DateTime.now().millisecondsSinceEpoch}.mp4";
-
-    final videoRef = FirebaseStorage.instance
-        .ref()
-        .child("chat_videos")
-        .child(chatId)
-        .child(fileName);
-
-    await videoRef.putFile(
-  video,
-  SettableMetadata(
-    contentType: "video/mp4",
-    cacheControl: "public,max-age=3600",
-  ),
-);
-
-    final videoUrl =
-        await videoRef.getDownloadURL();
-
-    final thumbnail = await generateThumbnail(video);
-
-    String thumbnailUrl = "";
-
-    if (thumbnail != null) {
-      final thumbRef = FirebaseStorage.instance
-          .ref()
-          .child("chat_video_thumbnails")
-          .child(chatId)
-          .child("${DateTime.now().millisecondsSinceEpoch}.jpg");
-
-      await thumbRef.putFile(thumbnail);
-
-      thumbnailUrl =
-          await thumbRef.getDownloadURL();
-    }
-
-    return {
-      "videoUrl": videoUrl,
-      "thumbnailUrl": thumbnailUrl,
-    };
-  } catch (e) {
-    debugPrint("Video Upload Error: $e");
-    return null;
-  }
-}
-// ==========================
-// Pick Gallery Video + Upload
-// ==========================
-static Future<Map<String, String>?> pickVideoGalleryAndUpload(
-    String chatId) async {
-  final video = await pickVideoFromGallery();
-
-  if (video == null) return null;
-
-  return uploadVideo(
-    chatId: chatId,
-    video: video,
-  );
-}// ==========================
-// Record Video + Upload
-// ==========================
-static Future<Map<String, String>?> recordVideoAndUpload(
-    String chatId) async {
-  final video = await recordVideo();
-
-  if (video == null) return null;
-
-  return uploadVideo(
-    chatId: chatId,
-    video: video,
-  );
-}
-
-  
-  // =====================================================
-  // VIDEO THUMBNAIL
+    // =====================================================
+  // VIDEO PICKER (GALLERY)
   // =====================================================
 
-  static Future<String?> createVideoThumbnail(
-    String videoUrl,
-  ) async {
+  static Future<XFile?> pickVideoFromGallery() async {
     try {
-      final dir = await getTemporaryDirectory();
+      return await _picker.pickVideo(
+        source: ImageSource.gallery,
+      );
+    } catch (e) {
+      debugPrint("Gallery Video Error: $e");
+      return null;
+    }
+  }
 
-      final thumbnail =
-          await VideoThumbnail.thumbnailFile(
-        video: videoUrl,
-        thumbnailPath: dir.path,
-        imageFormat: ImageFormat.JPEG,
-        quality: 75,
+  // =====================================================
+  // VIDEO PICKER (CAMERA)
+  // =====================================================
+
+  static Future<XFile?> recordVideo() async {
+    try {
+      return await _picker.pickVideo(
+        source: ImageSource.camera,
+      );
+    } catch (e) {
+      debugPrint("Camera Video Error: $e");
+      return null;
+    }
+  }
+
+  // =====================================================
+  // VIDEO UPLOAD
+  // =====================================================
+
+  static Future<Map<String, String>?> uploadVideo({
+    required String chatId,
+    required XFile video,
+  }) async {
+    try {
+      final Uint8List bytes = await video.readAsBytes();
+
+      final extension =
+          video.name.split('.').last.toLowerCase();
+
+      String contentType;
+
+      switch (extension) {
+        case "webm":
+          contentType = "video/webm";
+          break;
+
+        case "mov":
+          contentType = "video/quicktime";
+          break;
+
+        case "avi":
+          contentType = "video/x-msvideo";
+          break;
+
+        case "mkv":
+          contentType = "video/x-matroska";
+          break;
+
+        case "3gp":
+          contentType = "video/3gpp";
+          break;
+
+        case "mp4":
+        default:
+          contentType = "video/mp4";
+      }
+
+      final fileName =
+          "${DateTime.now().millisecondsSinceEpoch}.$extension";
+
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child("chat_videos")
+          .child(chatId)
+          .child(fileName);
+
+      await ref.putData(
+        bytes,
+        SettableMetadata(
+          contentType: contentType,
+          cacheControl: "public,max-age=3600",
+        ),
       );
 
-      return thumbnail;
-    } catch (e) {
-      debugPrint("Thumbnail Error: $e");
+      final videoUrl = await ref.getDownloadURL();
+
+      debugPrint("VIDEO UPLOADED");
+      debugPrint(videoUrl);
+
+      // Flutter Web cannot generate thumbnails.
+      // Use the video itself as the thumbnail.
+      return {
+        "videoUrl": videoUrl,
+        "thumbnailUrl": videoUrl,
+      };
+    } catch (e, stack) {
+      debugPrint("Video Upload Error: $e");
+      debugPrintStack(stackTrace: stack);
       return null;
+    }
+  }
+
+  // =====================================================
+  // PICK GALLERY VIDEO + UPLOAD
+  // =====================================================
+
+  static Future<Map<String, String>?>
+      pickVideoGalleryAndUpload(
+    String chatId,
+  ) async {
+    final video = await pickVideoFromGallery();
+
+    if (video == null) {
+      return null;
+    }
+
+    return await uploadVideo(
+      chatId: chatId,
+      video: video,
+    );
+  }
+
+  // =====================================================
+  // RECORD VIDEO + UPLOAD
+  // =====================================================
+
+  static Future<Map<String, String>?>
+      recordVideoAndUpload(
+    String chatId,
+  ) async {
+    final video = await recordVideo();
+
+    if (video == null) {
+      return null;
+    }
+
+    return await uploadVideo(
+      chatId: chatId,
+      video: video,
+    );
+  }
+    // =====================================================
+  // DELETE MEDIA
+  // =====================================================
+
+  static Future<void> deleteMedia(
+    String url,
+  ) async {
+    try {
+      await FirebaseStorage.instance
+          .refFromURL(url)
+          .delete();
+
+      debugPrint("Media deleted.");
+    } catch (e) {
+      debugPrint("Delete Media Error: $e");
+    }
+  }
+
+  // =====================================================
+  // CHECK IMAGE TYPE
+  // =====================================================
+
+  static bool isImage(String path) {
+    final ext =
+        path.split('.').last.toLowerCase();
+
+    return const [
+      "jpg",
+      "jpeg",
+      "png",
+      "gif",
+      "bmp",
+      "webp",
+      "svg",
+      "avif",
+    ].contains(ext);
+  }
+
+  // =====================================================
+  // CHECK VIDEO TYPE
+  // =====================================================
+
+  static bool isVideo(String path) {
+    final ext =
+        path.split('.').last.toLowerCase();
+
+    return const [
+      "mp4",
+      "webm",
+      "mov",
+      "avi",
+      "mkv",
+      "3gp",
+      "m4v",
+    ].contains(ext);
+  }
+
+  // =====================================================
+  // GET FILE EXTENSION
+  // =====================================================
+
+  static String getExtension(String filename) {
+    if (!filename.contains(".")) {
+      return "";
+    }
+
+    return filename
+        .split(".")
+        .last
+        .toLowerCase();
+  }
+
+  // =====================================================
+  // GET MIME TYPE
+  // =====================================================
+
+  static String getMimeType(String extension) {
+    switch (extension.toLowerCase()) {
+      case "png":
+        return "image/png";
+
+      case "gif":
+        return "image/gif";
+
+      case "bmp":
+        return "image/bmp";
+
+      case "webp":
+        return "image/webp";
+
+      case "svg":
+        return "image/svg+xml";
+
+      case "avif":
+        return "image/avif";
+
+      case "jpg":
+      case "jpeg":
+        return "image/jpeg";
+
+      case "mp4":
+        return "video/mp4";
+
+      case "webm":
+        return "video/webm";
+
+      case "mov":
+        return "video/quicktime";
+
+      case "avi":
+        return "video/x-msvideo";
+
+      case "mkv":
+        return "video/x-matroska";
+
+      case "3gp":
+        return "video/3gpp";
+
+      default:
+        return "application/octet-stream";
     }
   }
 }

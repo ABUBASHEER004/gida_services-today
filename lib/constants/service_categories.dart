@@ -7,7 +7,7 @@ class ServiceCategories {
     "Laundry",
     "Food Delivery",
     "Vegetables",
-    "Wielding"
+    "Wielding",
     "Meat",
   ];
 }

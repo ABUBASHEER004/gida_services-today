@@ -7,6 +7,8 @@ import '../services/notification_service.dart';
 import 'chat_screen.dart';
 import 'login_screen.dart';
 import 'provider_edit_profile.dart';
+import '../theme/app_theme.dart';
+import '../widgets/profile_avatar.dart';
 import 'dart:async';
 
 class ProviderDashboard extends StatefulWidget {
@@ -30,6 +32,7 @@ class _ProviderDashboardState extends State<ProviderDashboard>
 
   bool isOnline = false;
   String address = "Loading location...";
+  String profileImage = '';
 
   Future<void> saveFcmToken() async {
     try {
@@ -86,7 +89,10 @@ class _ProviderDashboardState extends State<ProviderDashboard>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
 
-    toggleStatus(false);
+    _firestore.collection('providers').doc(widget.providerId).set({
+      'isOnline': false,
+      'lastSeen': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
 
     NotificationService.dispose();
 
@@ -197,12 +203,15 @@ class _ProviderDashboardState extends State<ProviderDashboard>
 
     final data = doc.data() as Map<String, dynamic>;
 
+    if (!mounted) return;
+
     setState(() {
       isOnline = data['isOnline'] == true;
 
       nameController.text = data['name'] ?? '';
       phoneController.text = data['phone'] ?? '';
       serviceController.text = data['service'] ?? '';
+      profileImage = (data['profileImage'] ?? data['photoUrl'] ?? '').toString();
 
       address = data['address'] ??
           data['location']?['address'] ??
@@ -214,13 +223,7 @@ class _ProviderDashboardState extends State<ProviderDashboard>
   // EDIT PROFILE
   // =========================
   Future<void> openEditProfile() async {
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => ProviderEditProfile(
-        providerId: widget.providerId,
-      ),
-    );
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => ProviderEditProfile(providerId: widget.providerId)));
 
     // Reload provider data
     await loadProviderData();
@@ -237,7 +240,9 @@ class _ProviderDashboardState extends State<ProviderDashboard>
   // ONLINE/OFFLINE
   // =========================
   Future<void> toggleStatus(bool value) async {
-    setState(() => isOnline = value);
+    if (mounted) {
+      setState(() => isOnline = value);
+    }
 
     await _firestore.collection('providers').doc(widget.providerId).set({
       'isOnline': value,
@@ -447,6 +452,424 @@ class _ProviderDashboardState extends State<ProviderDashboard>
     }
   }
 
+
+  Widget _earningsPanel() {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: _firestore
+          .collection('requests')
+          .where('providerId', isEqualTo: widget.providerId)
+          .where('status', isEqualTo: 'completed')
+          .snapshots(),
+      builder: (context, snapshot) {
+        double earned = 0;
+        double pending = 0;
+
+        for (final doc in snapshot.data?.docs ?? const []) {
+          final data = doc.data();
+          earned += _money(data['providerEarning']);
+          if (data['providerMarkedPaid'] != true) {
+            pending += _money(data['commission']);
+          }
+        }
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [AppColors.navy, AppColors.primaryDark],
+            ),
+            borderRadius: BorderRadius.circular(26),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Earnings overview',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '₦${earned.toStringAsFixed(0)}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _earningChip(
+                    'Completed earnings',
+                    '₦${earned.toStringAsFixed(0)}',
+                  ),
+                  _earningChip(
+                    'Pending commission',
+                    '₦${pending.toStringAsFixed(0)}',
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _earningChip(String label, String value) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withOpacity(0.10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              )),
+          const SizedBox(height: 3),
+          Text(value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
+              )),
+        ],
+      ),
+    );
+  }
+
+  double _money(dynamic value) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  Widget _providerHeader() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          ProfileAvatar(
+            imageUrl: profileImage,
+            name: widget.providerName,
+            radius: 28,
+            showOnline: true,
+            isOnline: isOnline,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Welcome back, ${widget.providerName}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.navy,
+                    fontSize: 19,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  'Manage your requests and grow your service business.',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Switch(
+            value: isOnline,
+            onChanged: toggleStatus,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _commissionCard() {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: AppColors.primary.withOpacity(0.10),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.account_balance_rounded,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Commission payment',
+                  style: TextStyle(
+                    color: AppColors.navy,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  'Kuda Microfinance Bank',
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 12,
+                  ),
+                ),
+                SizedBox(height: 3),
+                SelectableText(
+                  '2082918233',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  "Pay commission after completing a job, then mark it as paid.",
+                  style: TextStyle(
+                    color: AppColors.muted,
+                    fontSize: 11.5,
+                    height: 1.35,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _requestCard(
+    BuildContext context,
+    QueryDocumentSnapshot<Map<String, dynamic>> doc,
+  ) {
+    final data = doc.data();
+    final id = doc.id;
+    final userId = (data['userId'] ?? '').toString();
+    final status = (data['status'] ?? 'pending').toString();
+    final category = (data['category'] ?? 'Service request').toString();
+    final description = (data['description'] ?? '').toString();
+    final amount = _money(data['amount']);
+    final paid = data['providerMarkedPaid'] == true;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(17),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    category,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                _statusPill(status),
+              ],
+            ),
+            if (description.isNotEmpty) ...[
+              const SizedBox(height: 7),
+              Text(
+                description,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  height: 1.4,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 10,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(13),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.payments_outlined,
+                    size: 18,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '₦${amount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      color: AppColors.navy,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: userId.isEmpty ? null : () => openChat(userId),
+                  icon: const Icon(Icons.chat_bubble_outline_rounded, size: 17),
+                  label: const Text('Chat'),
+                ),
+                if (status == 'pending')
+                  ElevatedButton.icon(
+                    onPressed: () => acceptRequest(id),
+                    icon: const Icon(Icons.check_rounded, size: 17),
+                    label: const Text('Accept'),
+                  ),
+                if (status == 'pending')
+                  OutlinedButton.icon(
+                    onPressed: () => rejectRequest(id),
+                    icon: const Icon(Icons.close_rounded, size: 17),
+                    label: const Text('Reject'),
+                  ),
+                if (status == 'accepted')
+                  ElevatedButton.icon(
+                    onPressed: () => showCompleteJobDialog(id),
+                    icon: const Icon(Icons.task_alt_rounded, size: 17),
+                    label: const Text('Mark done'),
+                  ),
+                if (status == 'completed' && !paid)
+                  ElevatedButton.icon(
+                    onPressed: () => markCommissionPaid(id),
+                    icon: const Icon(Icons.verified_rounded, size: 17),
+                    label: const Text('I have paid'),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statusPill(String status) {
+    final color = statusColor(status);
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 110),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.10),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Text(
+        status.toUpperCase(),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyRequests() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(30),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.inbox_outlined,
+                color: AppColors.primary,
+                size: 36,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No requests yet',
+              style: TextStyle(
+                color: AppColors.navy,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 7),
+            const Text(
+              'New customer requests will appear here.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppColors.muted,
+                height: 1.4,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // =========================
   // UI
   // =========================
@@ -454,169 +877,118 @@ class _ProviderDashboardState extends State<ProviderDashboard>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Provider: ${widget.providerName}"),
+        title: const Text('Provider Dashboard'),
         actions: [
-          IconButton(
-              icon: const Icon(Icons.chat),
-              tooltip: "Customer Chats",
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      "Open a customer chat from one of the requests below.",
+          PopupMenuButton<String>(
+            tooltip: 'More options',
+            onSelected: (value) {
+              switch (value) {
+                case 'chat':
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Open a customer chat from a request below.',
+                      ),
                     ),
-                  ),
-                );
-              }),
-          IconButton(
-            icon: const Icon(Icons.support_agent),
-            tooltip: "Admin Support",
-            onPressed: openAdminChat,
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: openEditProfile,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: logout,
-          ),
-          Row(
-            children: [
-              Text(isOnline ? "Online" : "Offline"),
-              Switch(
-                value: isOnline,
-                onChanged: toggleStatus,
+                  );
+                  break;
+                case 'support':
+                  openAdminChat();
+                  break;
+                case 'edit':
+                  openEditProfile();
+                  break;
+                case 'logout':
+                  logout();
+                  break;
+              }
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'chat',
+                child: Text('Customer chats'),
+              ),
+              PopupMenuItem(
+                value: 'support',
+                child: Text('Admin support'),
+              ),
+              PopupMenuItem(
+                value: 'edit',
+                child: Text('Edit profile'),
+              ),
+              PopupMenuItem(
+                value: 'logout',
+                child: Text('Sign out'),
               ),
             ],
+            icon: const Icon(Icons.more_horiz_rounded),
           ),
         ],
       ),
-      body: Column(
+      body: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
         children: [
-          // ✅ Earnings summary goes FIRST
-          earningsCard(),
-
-          // =========================
-          // COMMISSION ACCOUNT CARD
-          // =========================
-          Card(
-            margin: const EdgeInsets.all(12),
-            elevation: 3,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: const [
-                  Text(
-                    "Commission Payment Account",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text("Kuda Microfinance Bank"),
-                  SizedBox(height: 6),
-                  SelectableText(
-                    "2082918233",
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                  SizedBox(height: 6),
-                  Text(
-                    "Pay commission after completing jobs then tap 'I Have Paid'",
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+          _providerHeader(),
+          const SizedBox(height: 14),
+          _earningsPanel(),
+          const SizedBox(height: 14),
+          _commissionCard(),
+          const SizedBox(height: 22),
+          const Text(
+            'Customer requests',
+            style: TextStyle(
+              color: AppColors.navy,
+              fontSize: 19,
+              fontWeight: FontWeight.w900,
             ),
           ),
-
-          // =========================
-          // REQUEST LIST
-          // =========================
-          Expanded(
-            child: StreamBuilder<QuerySnapshot>(
-              stream: _firestore
-                  .collection('requests')
-                  .where('providerId', isEqualTo: widget.providerId)
-                  .orderBy('createdAt', descending: true)
-                  .snapshots(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                final docs = snapshot.data!.docs;
-
-                if (docs.isEmpty) {
-                  return const Center(child: Text("No requests"));
-                }
-
-                return ListView.builder(
-                  itemCount: docs.length,
-                  itemBuilder: (context, index) {
-                    final data = docs[index].data() as Map<String, dynamic>;
-                    final id = docs[index].id;
-                    final userId = (data['userId'] ?? '').toString();
-                    final status = data['status'] ?? 'pending';
-
-                    return Card(
-                      margin: const EdgeInsets.all(10),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(data['category'] ?? '',
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold)),
-                            Text(data['description'] ?? ''),
-                            Text("Amount: ₦${data['amount'] ?? 0}"),
-                            const SizedBox(height: 10),
-                            Wrap(
-                              spacing: 8,
-                              children: [
-                                ElevatedButton.icon(
-                                  onPressed: () => openChat(userId),
-                                  icon: const Icon(Icons.chat),
-                                  label: const Text("Chat"),
-                                ),
-                                if (status == 'pending')
-                                  ElevatedButton(
-                                    onPressed: () => acceptRequest(id),
-                                    child: const Text("Accept"),
-                                  ),
-                                if (status == 'pending')
-                                  ElevatedButton(
-                                    onPressed: () => rejectRequest(id),
-                                    child: const Text("Reject"),
-                                  ),
-                                if (status == 'accepted')
-                                  ElevatedButton(
-                                    onPressed: () => showCompleteJobDialog(id),
-                                    child: const Text("Done"),
-                                  ),
-                                if (status == 'completed' &&
-                                    data['providerMarkedPaid'] != true)
-                                  ElevatedButton.icon(
-                                    onPressed: () => markCommissionPaid(id),
-                                    icon: const Icon(Icons.check),
-                                    label: const Text("I Have Paid"),
-                                  ),
-                              ],
-                            )
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+          const SizedBox(height: 11),
+          StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+            stream: _firestore
+                .collection('requests')
+                .where('providerId', isEqualTo: widget.providerId)
+                .orderBy('createdAt', descending: true)
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.danger.withOpacity(0.06),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Text(
+                    'Unable to load requests. Check your connection or Firestore index.',
+                    style: TextStyle(
+                      color: AppColors.danger,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 );
-              },
-            ),
+              }
+
+              if (!snapshot.hasData) {
+                return const Padding(
+                  padding: EdgeInsets.all(30),
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              final docs = snapshot.data!.docs;
+              if (docs.isEmpty) return _emptyRequests();
+
+              return Column(
+                children: docs
+                    .map(
+                      (doc) => Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: _requestCard(context, doc),
+                      ),
+                    )
+                    .toList(),
+              );
+            },
           ),
         ],
       ),

@@ -874,18 +874,19 @@ if (deleted)
 // IMAGE
 // =====================================
 
-else if ((data['type'] ?? 'text') ==
-    'image')
+// =====================================
+// IMAGE (Flutter Web + Mobile)
+// =====================================
+
+else if ((data['type'] ?? 'text') == 'image')
 
   GestureDetector(
     onTap: () {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) =>
-              ImageViewerScreen(
-            imageUrl:
-                data['mediaUrl'],
+          builder: (_) => ImageViewerScreen(
+            imageUrl: data['mediaUrl'] ?? '',
           ),
         ),
       );
@@ -895,22 +896,69 @@ else if ((data['type'] ?? 'text') ==
       tag: doc.id,
 
       child: ClipRRect(
-        borderRadius:
-            BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12),
 
-        child: CachedNetworkImage(
-          imageUrl:
-              data['mediaUrl'],
-
+        child: Image.network(
+          data['mediaUrl'] ?? '',
           width: 220,
           height: 220,
-
           fit: BoxFit.contain,
+
+          loadingBuilder: (
+            context,
+            child,
+            loadingProgress,
+          ) {
+            if (loadingProgress == null) {
+              return child;
+            }
+
+            return SizedBox(
+              width: 220,
+              height: 220,
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          },
+
+          errorBuilder: (
+            context,
+            error,
+            stackTrace,
+          ) {
+            debugPrint("Image Error: $error");
+
+            return Container(
+              width: 220,
+              height: 220,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.broken_image,
+                    size: 45,
+                    color: Colors.grey,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    "Unable to load image",
+                    style: TextStyle(
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     ),
   )
-
 // =====================================
 // VIDEO
 // =====================================

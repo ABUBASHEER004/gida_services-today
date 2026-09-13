@@ -23,8 +23,7 @@ class ChatAudioService {
 
       final dir = await getTemporaryDirectory();
 
-      _currentPath =
-          "${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a";
+      _currentPath = "${dir.path}/${DateTime.now().millisecondsSinceEpoch}.m4a";
 
       await _recorder.start(
         const RecordConfig(),

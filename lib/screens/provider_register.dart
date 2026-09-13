@@ -1,6 +1,7 @@
-import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -32,7 +33,7 @@ class _ProviderRegisterState extends State<ProviderRegister> {
   // PROFILE IMAGE
   // =========================
 
-  File? selectedImage;
+  XFile? selectedImage;
 
   final List<String> serviceCategories = const [
     "Waste Pickup",
@@ -128,7 +129,7 @@ class _ProviderRegisterState extends State<ProviderRegister> {
 
                   final image = await ProfileImageService.pickFromCamera();
 
-                  if (image != null) {
+                  if (image != null && mounted) {
                     setState(() {
                       selectedImage = image;
                     });
@@ -143,7 +144,7 @@ class _ProviderRegisterState extends State<ProviderRegister> {
 
                   final image = await ProfileImageService.pickFromGallery();
 
-                  if (image != null) {
+                  if (image != null && mounted) {
                     setState(() {
                       selectedImage = image;
                     });
@@ -370,16 +371,28 @@ if (selectedImage != null) {
                     CircleAvatar(
                       radius: 60,
                       backgroundColor: Colors.grey.shade300,
-                      backgroundImage: selectedImage != null
-                          ? FileImage(selectedImage!)
-                          : null,
                       child: selectedImage == null
                           ? const Icon(
                               Icons.camera_alt,
                               size: 40,
                               color: Colors.black54,
                             )
-                          : null,
+                          : FutureBuilder<List<int>>(
+                              future: selectedImage!.readAsBytes(),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return const CircularProgressIndicator();
+                                }
+                                return ClipOval(
+                                  child: Image.memory(
+                                    Uint8List.fromList(snapshot.data!),
+                                    width: 120,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                  ),
+                                );
+                              },
+                            ),
                     ),
                     const SizedBox(height: 10),
                     const Text(

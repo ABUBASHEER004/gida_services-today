@@ -20,17 +20,48 @@ class ImageViewerScreen extends StatelessWidget {
           color: Colors.white,
         ),
       ),
-      body: Center(
-        child: Hero(
-          tag: imageUrl,
-          child: PhotoView(
-            imageProvider: NetworkImage(imageUrl),
-            minScale: PhotoViewComputedScale.contained,
-            maxScale: PhotoViewComputedScale.covered * 4,
-            backgroundDecoration: const BoxDecoration(
-              color: Colors.black,
-            ),
+      body: Hero(
+        tag: imageUrl,
+        child: PhotoView(
+          imageProvider: CachedNetworkImageProvider(imageUrl),
+          minScale: PhotoViewComputedScale.contained,
+          maxScale: PhotoViewComputedScale.covered * 4,
+          backgroundDecoration: const BoxDecoration(
+            color: Colors.black,
           ),
+          loadingBuilder: (context, event) {
+            return const Center(
+              child: CircularProgressIndicator(
+                color: Colors.white,
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            debugPrint("Image Viewer Error:");
+            debugPrint(imageUrl);
+            debugPrint(error.toString());
+
+            return const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.broken_image,
+                    color: Colors.red,
+                    size: 80,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    "Unable to load image",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );

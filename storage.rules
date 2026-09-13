@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Profile photos are public to signed-in app users and writable only
+    // by the account owner.
+    match /profile_images/{uid}/{fileName} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.size < 5 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow delete: if request.auth != null && request.auth.uid == uid;
+    }
+
+    // Existing application uploads can keep their own rules here.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,6 +1,10 @@
+
 import 'package:flutter/material.dart';
-import 'provider_login.dart'; // provider login screen
-import 'provider_register.dart'; // (you will create next)
+
+import '../theme/app_theme.dart';
+import 'home_screen.dart';
+import 'provider_login.dart';
+import 'provider_register.dart';
 
 class ProvidersScreen extends StatelessWidget {
   const ProvidersScreen({super.key});
@@ -9,175 +13,343 @@ class ProvidersScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Service Providers"),
+        title: const Text('For Providers'),
+        centerTitle: false,
       ),
-
       body: ListView(
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
         children: [
+          _hero(),
 
-          _buildInfoCard(
-            context,
-            title: "Become a Provider",
-            subtitle: "Register with email and start receiving jobs",
-            icon: Icons.person_add,
-            buttonText: "Register",
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ProviderRegister(),
+          const SizedBox(height: 20),
+
+          // Provider actions.
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _action(
+                  context,
+                  Icons.person_add_alt_1_rounded,
+                  'Join Gida',
+                  'Register and receive requests',
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ProviderRegister(),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-
-          _buildInfoCard(
-            context,
-            title: "Provider Login",
-            subtitle: "Login to access your dashboard & requests",
-            icon: Icons.lock,
-            buttonText: "Login",
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const ProviderLogin(),
-                ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 10),
-
-          const Padding(
-            padding: EdgeInsets.all(16),
-            child: Text(
-              "Available Service Categories",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
               ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _action(
+                  context,
+                  Icons.login_rounded,
+                  'Provider Login',
+                  'Open your dashboard',
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const ProviderLogin(),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 30),
+
+          // Categories heading.
+          Text(
+            'Service Categories',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.navy,
+                  letterSpacing: -0.3,
+                ),
+          ),
+
+          const SizedBox(height: 4),
+
+          Text(
+            '${HomeScreen.services.length} categories available',
+            style: const TextStyle(
+              color: AppColors.muted,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
           ),
 
-          _buildCategory("Waste Pickup", Icons.delete),
-          _buildCategory("Tailor", Icons.man),
-          _buildCategory("Shoe Seller", Icons.man),
-          _buildCategory("Plumber", Icons.plumbing),
-          _buildCategory("Electrician", Icons.electrical_services),
-          _buildCategory("Carpenter", Icons.carpenter),
-          _buildCategory("Phone Repair", Icons.man_2),
-          _buildCategory("Car Repair", Icons.car_repair),
-          _buildCategory("Weilding", Icons.electrical_services_outlined),
-          _buildCategory("Car Wash", Icons.local_car_wash),
-          _buildCategory("Gardener", Icons.man_2),
-          _buildCategory("P.o.s Agent", Icons.man_2),
-          _buildCategory("Gas Refill", Icons.gas_meter),
-          _buildCategory("Meat Seller", Icons.restaurant),
-          _buildCategory("Food Delivery", Icons.fastfood),
-          _buildCategory("Laundry", Icons.local_laundry_service),
-          _buildCategory("Book Barbing Queue", Icons.man),
-          _buildCategory("Mai Kitso", Icons.woman),
-          _buildCategory("Lesson Teacher", Icons.book),
-          _buildCategory("Book Saloon Queue", Icons.woman),
-          _buildCategory("Fish Seller", Icons.woman),
-          _buildCategory("Delivery Services", Icons.man),
-          _buildCategory("Rental Services", Icons.roofing),
-          _buildCategory("Painter", Icons.man),
-          _buildCategory("Mai Lalle", Icons.woman),
-          _buildCategory("Vegetables and Kayan Miya", Icons.grass),
-          _buildCategory("Cleaning", Icons.cleaning_services),
-          _buildCategory("Order Snacks", Icons.woman),
-           _buildCategory("Napep Booking",Icons.man),
-    _buildCategory("Electronic Appliances Repair",Icons.man),
-    _buildCategory("Animal Clinic",Icons.local_hospital_outlined),
-   _buildCategory("Chicken Booking, Feeds and Drugs",Icons.man),
-    _buildCategory("Diagnostic Centre",Icons.woman),
-    _buildCategory("Hospital",Icons.local_hospital),
-    _buildCategory("Building Materials",Icons.man),
-    _buildCategory("Plumbing Materials Seller",Icons.man),
-    _buildCategory("Carpentry Materials Seller",Icons.man),
-    _buildCategory("Cement Seller",Icons.man),
-    _buildCategory("Pharmacy",Icons.woman),
-    _buildCategory("Fabrics(shadda/yadi) Dealer ",Icons.man),
-    _buildCategory("Abaya Seller ",Icons.woman),
-    _buildCategory("Football Kits Seller",Icons.man),
-    _buildCategory("Kitchen Utensils Seller",Icons.woman),
-    _buildCategory("Restaurant",Icons.restaurant),
-    _buildCategory("Graphic Designer",Icons.man),
-    _buildCategory("Building Labourer",Icons.man),
-    _buildCategory("Construction Firms",Icons.man),
-    _buildCategory("Real Estate Agent",Icons.man),
-    _buildCategory("Pure Water Distributor",Icons.man),
-    _buildCategory("Cloths/Baby Cloths Seller",Icons.woman),
-    _buildCategory("Make-up Saloon",Icons.woman),
-    _buildCategory("Printing, Writing and Reading Materials(Books)",Icons.man),
-    _buildCategory("Electronic Appliances Seller",Icons.man),
-    _buildCategory("Solar Installer",Icons.solar_power),
-    _buildCategory("Satellite Dish Repair",Icons.satellite_alt),
-    _buildCategory("Event Centre",Icons.house),
-    _buildCategory("Laptop Seller",Icons.laptop_mac),
-    _buildCategory("Phone Seller",Icons.phone_android),
-    _buildCategory("TV Repair",Icons.tv),
-    _buildCategory("Flowers Seller",Icons.man),
-    _buildCategory("Islamic Lesson Teacher",Icons.man),
-    _buildCategory("Beds Seller",Icons.man),
-    _buildCategory("Furniture Seller",Icons.man),
-    _buildCategory("Suya Spot",Icons.man),
-    _buildCategory("Animals Seller",Icons.man),
-    _buildCategory("Rice Seller",Icons.man),
-    _buildCategory("Grain Seller",Icons.man),
-    _buildCategory("Yam Seller",Icons.man),
-    _buildCategory("Fruits Seller",Icons.man),
-    _buildCategory("Rubber Home Equipment Seller ",Icons.woman),
-    _buildCategory("Palm oil/Groundnut oil Seller",Icons.woman),
-    _buildCategory("Petrol Black Marketer",Icons.man),
-    _buildCategory("Women Beauty Products Seller",Icons.woman),
-    _buildCategory("School ",Icons.school_outlined),
-    _buildCategory("Other Services", Icons.manage_accounts),
+          const SizedBox(height: 15),
+
+          // Service categories.
+          ...HomeScreen.services.map(
+            (service) {
+              final IconData icon =
+                  service['icon'] as IconData;
+
+              final String name =
+                  service['name'] as String;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _categoryCard(
+                  context,
+                  icon: icon,
+                  name: name,
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildInfoCard(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required String buttonText,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      margin: const EdgeInsets.all(12),
-      child: ListTile(
-        leading: Icon(icon, size: 30),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: ElevatedButton(
-          onPressed: onTap,
-          child: Text(buttonText),
+  Widget _hero() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.navy,
+            AppColors.primaryDark,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.navy.withOpacity(0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: AppColors.accent.withOpacity(0.16),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(
+              Icons.storefront_rounded,
+              color: AppColors.accent,
+              size: 28,
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          const Text(
+            'Turn your skills into opportunities.',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              height: 1.08,
+              letterSpacing: -0.5,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          const Text(
+            'Create a professional profile, receive service requests '
+            'and communicate directly with customers.',
+            style: TextStyle(
+              color: Colors.white70,
+              height: 1.5,
+              fontSize: 13.5,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+
+          const SizedBox(height: 18),
+
+          // Small trust indicator.
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: AppColors.accent,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Grow your local service business',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _action(
+    BuildContext context,
+    IconData icon,
+    String title,
+    String subtitle,
+    VoidCallback onTap,
+  ) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(21),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(21),
+            border: Border.all(
+              color: AppColors.border,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.navy.withOpacity(0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: AppColors.accent.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
+              ),
+
+              const SizedBox(height: 13),
+
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.navy,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+
+              const SizedBox(height: 5),
+
+              Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.muted,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  height: 1.35,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCategory(String title, IconData icon) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: ListTile(
-        leading: Icon(icon),
-        title: Text(title),
-        trailing: const Icon(Icons.arrow_forward_ios),
-        onTap: () {},
+  Widget _categoryCard(
+    BuildContext context, {
+    required IconData icon,
+    required String name,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          // Category selection can be connected to provider search.
+          // The existing category data remains unchanged.
+        },
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.border,
+            ),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 5,
+            ),
+            leading: Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.primary,
+                size: 21,
+              ),
+            ),
+            title: Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.navy,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
+            ),
+            trailing: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.06),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.muted,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
-
-
-
-
-
-
 

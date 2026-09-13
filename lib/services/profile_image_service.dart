@@ -1,109 +1,72 @@
-import 'dart:io';
-
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:path_provider/path_provider.dart';
 
 class ProfileImageService {
   static final ImagePicker _picker = ImagePicker();
 
-  // ==========================================
-  // PICK FROM GALLERY
-  // ==========================================
-  static Future<File?> pickFromGallery() async {
+  static Future<XFile?> pickFromGallery() async {
     try {
-      final XFile? image = await _picker.pickImage(
+      return await _picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 100,
+        imageQuality: 88,
+        maxWidth: 1600,
+        maxHeight: 1600,
       );
-
-      if (image == null) return null;
-
-      return File(image.path);
     } catch (e) {
-      debugPrint("Gallery Error: $e");
+      debugPrint('Gallery error: $e');
       return null;
     }
   }
 
-  // ==========================================
-  // TAKE PHOTO
-  // ==========================================
-  static Future<File?> pickFromCamera() async {
+  static Future<XFile?> pickFromCamera() async {
     try {
-      final XFile? image = await _picker.pickImage(
+      return await _picker.pickImage(
         source: ImageSource.camera,
-        imageQuality: 100,
+        imageQuality: 88,
+        maxWidth: 1600,
+        maxHeight: 1600,
       );
-
-      if (image == null) return null;
-
-      return File(image.path);
     } catch (e) {
-      debugPrint("Camera Error: $e");
+      debugPrint('Camera error: $e');
       return null;
     }
   }
 
-  // ==========================================
-  // COMPRESS IMAGE
-  // ==========================================
-  static Future<File> compress(File image) async {
-    try {
-      final tempDir = await getTemporaryDirectory();
-
-      final targetPath =
-          "${tempDir.path}/${DateTime.now().millisecondsSinceEpoch}.jpg";
-
-      final XFile? compressed =
-          await FlutterImageCompress.compressAndGetFile(
-        image.absolute.path,
-        targetPath,
-        quality: 70,
-        minWidth: 1080,
-        minHeight: 1080,
-      );
-
-      if (compressed == null) {
-        return image;
-      }
-
-      return File(compressed.path);
-    } catch (e) {
-      debugPrint("Compression Error: $e");
-      return image;
-    }
-  }
-
-  // ==========================================
-  // UPLOAD PROFILE IMAGE
-  // ==========================================
   static Future<String?> uploadProfileImage({
     required String uid,
-    required File image,
+    required XFile image,
   }) async {
     try {
-      final compressed = await compress(image);
+      final bytes = await image.readAsBytes();
+      if (bytes.isEmpty) return null;
 
       final ref = FirebaseStorage.instance
           .ref()
-          .child("profile_images")
+          .child('profile_images')
           .child(uid)
-          .child("profile.jpg");
+          .child('profile.jpg');
 
-      await ref.putFile(compressed);
+      await ref.putData(
+        bytes,
+        SettableMetadata(
+          contentType: 'image/jpeg',
+          cacheControl: 'public,max-age=3600',
+        ),
+      );
 
-      final url = await ref.getDownloadURL();
-
-      debugPrint("Profile Image Uploaded:");
-      debugPrint(url);
-
-      return url;
+      return await ref.getDownloadURL();
     } catch (e) {
-      debugPrint("Profile Upload Error: $e");
+      debugPrint('Profile upload error: $e');
       return null;
     }
   }
+
+  static Future<String?> updateProfileImage({
+    required String uid,
+    required XFile image,
+  }) async {
+    return uploadProfileImage(uid: uid, image: image);
+  }
+
 }

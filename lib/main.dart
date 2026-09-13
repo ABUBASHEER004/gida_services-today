@@ -4,6 +4,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'firebase_options.dart';
 import 'screens/splash_screen.dart';
+import 'theme/app_theme.dart';
 import 'services/notification_service.dart';
 import 'services/presence_service.dart';
 
@@ -120,9 +121,7 @@ class GidaServicesApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Gida Services',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
-      ),
+      theme: AppTheme.light(),
       home: const SplashScreen(),
     );
   }
